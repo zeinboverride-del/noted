@@ -37,6 +37,151 @@ const SPECIAL_DAY_NAME = 'Khusus';
 let hariAktif = '';
 let editId = null;
 
+function getLocalNotificationsPlugin() {
+    if (typeof window === 'undefined') {
+        return null;
+    }
+
+    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.LocalNotifications) {
+        return window.Capacitor.Plugins.LocalNotifications;
+    }
+
+    return null;
+}
+
+async function ensureNotificationPermissions() {
+    const plugin = getLocalNotificationsPlugin();
+    if (!plugin) {
+        console.warn('Local Notifications plugin tidak tersedia di lingkungan saat ini.');
+        return false;
+    }
+
+    try {
+        const status = await plugin.checkPermissions();
+        const displayState = status && status.display ? status.display : (status && status.status ? status.status : 'default');
+        if (displayState === 'granted') {
+            return true;
+        }
+
+        const requested = await plugin.requestPermissions();
+        const nextState = requested && requested.display ? requested.display : (requested && requested.status ? requested.status : 'denied');
+        return nextState === 'granted';
+    } catch (error) {
+        console.error('Gagal memeriksa izin notifikasi:', error);
+        return false;
+    }
+}
+
+function getTargetDateTimeInput() {
+    const elementIds = [
+        'inputTargetDateTime',
+        'taskDueDateTime',
+        'inputDeadline',
+        'taskDateTime',
+        'dueDateTime'
+    ];
+
+    for (const id of elementIds) {
+        const element = document.getElementById(id);
+        if (element && element.value) {
+            const date = new Date(element.value);
+            if (!Number.isNaN(date.getTime())) {
+                return date;
+            }
+        }
+    }
+
+    const generic = document.querySelector('input[type="datetime-local"], input[name="targetDateTime"], [data-task-datetime]');
+    if (generic && generic.value) {
+        const date = new Date(generic.value);
+        if (!Number.isNaN(date.getTime())) {
+            return date;
+        }
+    }
+
+    return null;
+}
+
+function getReminderTimeLabel(date) {
+    return new Intl.DateTimeFormat('id-ID', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    }).format(date);
+}
+
+function getTaskReminderIds(taskId) {
+    const seed = Number(String(taskId).replace(/\D/g, '').slice(-8) || String(Date.now()).slice(-8));
+    const exactId = (seed % 100000000) + 1;
+    const reminderId = exactId + 10000;
+    return { exactId, reminderId };
+}
+
+function buildReminderBodyForTask(taskTitle, targetDate, type) {
+    const taskName = (taskTitle || 'Tugas').trim() || 'Tugas';
+    if (type === 'exact') {
+        return `Mengingatkan: Terdapat tugas '${taskName}' pada pukul ${getReminderTimeLabel(targetDate)}.`;
+    }
+
+    return `Tugas '${taskName}' dijadwalkan untuk besok.`;
+}
+
+async function scheduleTaskNotifications(task) {
+    if (!task || !task.id) {
+        return false;
+    }
+
+    const candidateDate = task.targetAt ? new Date(task.targetAt) : getTargetDateTimeInput();
+    if (!candidateDate || Number.isNaN(candidateDate.getTime())) {
+        return false;
+    }
+
+    const now = new Date();
+    if (candidateDate.getTime() <= now.getTime()) {
+        return false;
+    }
+
+    const plugin = getLocalNotificationsPlugin();
+    if (!plugin) {
+        return false;
+    }
+
+    const { exactId, reminderId } = getTaskReminderIds(task.id);
+    const notifications = [{
+        id: exactId,
+        title: 'Pengingat Tugas',
+        body: buildReminderBodyForTask(task.judul, candidateDate, 'exact'),
+        schedule: { at: candidateDate },
+        sound: 'default'
+    }];
+
+    const dayBefore = new Date(candidateDate.getTime() - 24 * 60 * 60 * 1000);
+    if (dayBefore.getTime() > now.getTime()) {
+        notifications.push({
+            id: reminderId,
+            title: 'Jadwal Mendatang',
+            body: buildReminderBodyForTask(task.judul, dayBefore, 'day-before'),
+            schedule: { at: dayBefore },
+            sound: 'default'
+        });
+    }
+
+    try {
+        const granted = await ensureNotificationPermissions();
+        if (!granted) {
+            return false;
+        }
+
+        await plugin.schedule({ notifications });
+        return true;
+    } catch (error) {
+        console.error('Gagal menjadwalkan notifikasi tugas:', error);
+        return false;
+    }
+}
+
 function getDeviceDays() {
     const index = new Date().getDay();
     return {
@@ -498,7 +643,7 @@ function tutupForm() {
     editId = null;
 }
 
-function simpanCatatan() {
+async function simpanCatatan() {
     const judul = inputJudul.value.trim();
     const isi = inputIsi.value.trim();
 
@@ -520,30 +665,41 @@ function simpanCatatan() {
         }
         : null;
 
+    const inputTargetDate = getTargetDateTimeInput();
+    let createdTask = null;
+
     if (editId) {
         const index = allNotes[hariAktif].findIndex(function(q) { return q.id === editId; });
         if (index > -1) {
             allNotes[hariAktif][index].judul = judul || 'Tanpa judul';
             allNotes[hariAktif][index].isi = isi;
+            allNotes[hariAktif][index].targetAt = inputTargetDate ? inputTargetDate.toISOString() : (allNotes[hariAktif][index].targetAt || null);
 
             if (hariAktif === SPECIAL_DAY_NAME && specialPayload) {
                 allNotes[hariAktif][index].specialMode = specialPayload.specialMode;
                 allNotes[hariAktif][index].specialDay = specialPayload.specialDay;
                 allNotes[hariAktif][index].specialMonth = specialPayload.specialMonth;
             }
+
+            createdTask = allNotes[hariAktif][index];
         }
     } else {
-        allNotes[hariAktif].push({
+        createdTask = {
             id: 'q-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7),
             judul: judul || 'Tanpa judul',
             isi: isi,
             waktu: new Date().toISOString(),
+            targetAt: inputTargetDate ? inputTargetDate.toISOString() : null,
             selesai: false,
             ...(specialPayload || {})
-        });
+        };
+        allNotes[hariAktif].push(createdTask);
     }
 
     saveNotes(allNotes);
+    if (createdTask) {
+        await scheduleTaskNotifications(createdTask);
+    }
     tutupForm();
     renderNotes();
 }
@@ -680,58 +836,23 @@ if ('serviceWorker' in navigator) {
     });
 }
 
-function checkAndSendNotifications() {
-    const now = new Date();
-    const hours = now.getHours();
-    const minutes = now.getMinutes();
-
-    // Jalankan hanya di menit ke-0 (06:00, 14:00, 18:00)
-    if (minutes !== 0) return;
-
+async function checkAndSendNotifications() {
     const allNotes = normalizeNotes(loadNotes());
-    const deviceDays = getDeviceDays();
+    const taskList = Object.values(allNotes).flat();
 
-    const todayQuests = allNotes[deviceDays.today] || [];
-    const activeToday = todayQuests.filter(q => !q.selesai);
-
-    const tomorrowQuests = allNotes[deviceDays.tomorrow] || [];
-    const activeTomorrow = tomorrowQuests.filter(q => !q.selesai);
-
-    // 1. JAM 06.00 PAGI: Khusus Misi Hari Ini
-    if (hours === 6) {
-        if (activeToday.length > 0) {
-            sendQuestNotification(
-                'Jangan lupa Hari Ini!',
-                `Ada ${activeToday.length} quest aktif buat hari ini. Cek dulu sebelum berangkat!`
-            );
+    for (const task of taskList) {
+        if (!task || task.selesai) {
+            continue;
         }
-    }
 
-    // 2. JAM 14.00 SIANG (PULANG SEKOLAH): Langsung Intip Misi Besok!
-    if (hours === 14) {
-        if (activeTomorrow.length > 0) {
-            sendQuestNotification(
-                'Persiapan Buat Besok!',
-                `Besok kamu punya ${activeTomorrow.length} quest. Lebih baik dikerjakan terlebih dahulu!`
-            );
-        }
-    }
-
-    // 3. JAM 18.00 SORE: Evaluasi Malam & Last Call
-    if (hours === 18) {
-        if (activeToday.length > 0) {
-            sendQuestNotification(
-                'Tugas Hari Ini Belum Kelar!',
-                `Masih ada ${activeToday.length} quest hari ini yang belum selesai. Jangan sampai jadi Overdue!`
-            );
-        } else if (activeTomorrow.length > 0) {
-            sendQuestNotification(
-                'Tugas Besok Sudah Siap?',
-                `Hari ini CLEAR! Jangan lupa besok ada ${activeTomorrow.length} quest yang menanti.`
-            );
-        }
+        await scheduleTaskNotifications(task);
     }
 }
+
+window.addEventListener('load', function() {
+    ensureNotificationPermissions();
+});
+
 window.addEventListener('popstate', function(e) {
     // Jika Form Quest sedang terbuka, tutup formnya dulu
     if (noteForm.classList.contains('active')) {
