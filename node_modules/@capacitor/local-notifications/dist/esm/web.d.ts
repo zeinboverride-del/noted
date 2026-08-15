@@ -1,0 +1,35 @@
+import { WebPlugin } from '@capacitor/core';
+import type { PermissionState } from '@capacitor/core';
+import type { DeliveredNotifications, EnabledResult, GetAllOptions, GetByIdsOptions, GetNotificationsResult, ListChannelsResult, LocalNotificationSchema, LocalNotificationsPlugin, PendingResult, PermissionStatus, RemoveByIdsOptions, ScheduleOptions, ScheduleResult, SettingsPermissionStatus } from './definitions';
+export declare class LocalNotificationsWeb extends WebPlugin implements LocalNotificationsPlugin {
+    protected pending: LocalNotificationSchema[];
+    protected deliveredNotifications: Notification[];
+    getDeliveredNotifications(): Promise<DeliveredNotifications>;
+    removeDeliveredNotifications(delivered: DeliveredNotifications): Promise<void>;
+    removeDeliveredNotificationsById(options: RemoveByIdsOptions): Promise<void>;
+    removeAllDeliveredNotifications(): Promise<void>;
+    getByIds(options: GetByIdsOptions): Promise<GetNotificationsResult>;
+    getAll(options?: GetAllOptions): Promise<GetNotificationsResult>;
+    protected deliveredToSchema(notification: Notification): LocalNotificationSchema;
+    createChannel(): Promise<void>;
+    deleteChannel(): Promise<void>;
+    listChannels(): Promise<ListChannelsResult>;
+    schedule(options: ScheduleOptions): Promise<ScheduleResult>;
+    update(options: ScheduleOptions): Promise<ScheduleResult>;
+    getPending(): Promise<PendingResult>;
+    cancelAll(): Promise<void>;
+    registerActionTypes(): Promise<void>;
+    cancel(pending: ScheduleResult): Promise<void>;
+    areEnabled(): Promise<EnabledResult>;
+    changeExactNotificationSetting(): Promise<SettingsPermissionStatus>;
+    checkExactNotificationSetting(): Promise<SettingsPermissionStatus>;
+    requestPermissions(): Promise<PermissionStatus>;
+    checkPermissions(): Promise<PermissionStatus>;
+    protected hasNotificationSupport: () => boolean;
+    protected transformNotificationPermission(permission: NotificationPermission): PermissionState;
+    protected sendPending(): void;
+    protected sendNotification(notification: LocalNotificationSchema): void;
+    protected buildNotification(notification: LocalNotificationSchema): Notification;
+    protected onClick(notification: LocalNotificationSchema): void;
+    protected onShow(notification: LocalNotificationSchema): void;
+}

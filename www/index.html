@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Noted - Daily</title>
+    <link rel="stylesheet" href="HASIL_HASIL/fontawesome/css/all.min.css">
+    <link rel="stylesheet" href="indexan.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0a0a0f">
+    <link rel="apple-touch-icon" href="icon-192.png">
+</head>
+<body>
+    <header class="app-header">
+        <h1><i class="fa-solid fa-scroll"></i> Noted</h1>
+        <p class="app-subtitle">Kerjakan Tugas Terlebih Dahulu</p>
+        <div class="global-quest-panel" id="globalQuestPanel">
+            <div class="global-quest-label">
+                <i class="fa-solid fa-bolt"></i> Active Quests
+            </div>
+            <div class="global-quest-count" id="totalQuestBadge">0</div>
+            <div class="global-progress-wrap">
+                <div class="global-progress-bar" id="globalProgressBar"></div>
+            </div>
+            <span class="global-progress-text" id="globalProgressText">0 / 0 cleared</span>
+        </div>
+    </header>
+
+    <div class="hari">
+        <div class="isi_hari" data-hari="Senin">
+            <span class="day-name">Senin</span>
+            <span class="day-quest-badge"></span>
+            <div class="day-progress"><div class="day-progress-fill"></div></div>
+        </div>
+        <div class="isi_hari" data-hari="Selasa">
+            <span class="day-name">Selasa</span>
+            <span class="day-quest-badge"></span>
+            <div class="day-progress"><div class="day-progress-fill"></div></div>
+        </div>
+        <div class="isi_hari" data-hari="Rabu">
+            <span class="day-name">Rabu</span>
+            <span class="day-quest-badge"></span>
+            <div class="day-progress"><div class="day-progress-fill"></div></div>
+        </div>
+        <div class="isi_hari" data-hari="Kamis">
+            <span class="day-name">Kamis</span>
+            <span class="day-quest-badge"></span>
+            <div class="day-progress"><div class="day-progress-fill"></div></div>
+        </div>
+        <div class="isi_hari" data-hari="Jumat">
+            <span class="day-name">Jumat</span>
+            <span class="day-quest-badge"></span>
+            <div class="day-progress"><div class="day-progress-fill"></div></div>
+        </div>
+        <div class="isi_hari" data-hari="Sabtu">
+            <span class="day-name">Sabtu</span>
+            <span class="day-quest-badge"></span>
+            <div class="day-progress"><div class="day-progress-fill"></div></div>
+        </div>
+        <div class="isi_hari" data-hari="Minggu">
+            <span class="day-name">Minggu</span>
+            <span class="day-quest-badge"></span>
+            <div class="day-progress"><div class="day-progress-fill"></div></div>
+        </div>
+        <div class="isi_hari" data-hari="Khusus">
+            <span class="day-name">Event</span>
+            <span class="day-quest-badge"></span>
+            <div class="day-progress"><div class="day-progress-fill"></div></div>
+        </div>
+    </div>
+
+    <section class="all-quests-section" id="allQuestsSection">
+        <div class="all-quests-header">
+            <h2><i class="fa-solid fa-list-check"></i> All Quest</h2>
+            <span class="today-badge" id="todayBadge"></span>
+        </div>
+        <div class="all-quests-list" id="allQuestsList"></div>
+    </section>
+
+    <div class="questinday">
+        <div class="quest-header">
+            <button type="button" class="btn-back" id="btnBack" aria-label="Kembali">
+                <i class="fa-solid fa-arrow-left"></i>
+                <span>Kembali</span>
+            </button>
+            <div class="quest-header-info">
+                <h2 class="quest-title" id="namaHari">Senin</h2>
+                <span class="quest-day-stats" id="questDayStats"></span>
+            </div>
+        </div>
+
+        <div class="day-toolbar">
+            <button type="button" class="btn-clear-completed" id="btnClearCompleted" disabled>
+                <i class="fa-solid fa-broom"></i>
+                Hapus Quest Selesai
+            </button>
+        </div>
+
+        <div class="notes-list" id="notesList"></div>
+
+        <button type="button" class="btn-add" id="button">
+            <i class="fa-solid fa-plus"></i>
+            <span>New Quest</span>
+        </button>
+
+        <section class="note-form" id="noteForm">
+            <div class="form-header">
+                <h3 id="formTitle">New Quest</h3>
+                <button type="button" class="btn-close-form" id="btnCloseForm" aria-label="Tutup form">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <input type="text" id="inputJudul" placeholder="Judul quest">
+            <textarea id="inputIsi" placeholder="Deskripsi misi..."></textarea>
+
+            <div class="special-form-wrap" id="specialFormWrap">
+                <div class="special-form-top">
+                    <span class="form-subtitle"><i class="fa-solid fa-bolt"></i> Advanced </span>
+                </div>
+
+                <div class="mode-choice-block">
+                    <span class="field-label">Pilih jadwal</span>
+                    <label class="choice-row" for="specialDateMode">
+                        <input type="radio" name="specialMode" id="specialDateMode" value="tanggal" checked>
+                        <span class="choice-marker"></span>
+                        <span>Tanggal</span>
+                    </label>
+                    <label class="choice-row" for="specialMonthMode">
+                        <input type="radio" name="specialMode" id="specialMonthMode" value="bulan">
+                        <span class="choice-marker"></span>
+                        <span>Bulan</span>
+                    </label>
+                </div>
+
+                <div class="special-select-area">
+                    <div class="control-block" id="specialDateBlock">
+                        <label class="field-label" for="specialDaySelect">Pilih tanggal/bulan</label>
+                        <select id="specialDaySelect" aria-label="Pilih tanggal">
+                            <option value="1">1 - Tanggal 1</option>
+                            <option value="2">2 - Tanggal 2</option>
+                            <option value="3">3 - Tanggal 3</option>
+                            <option value="4">4 - Tanggal 4</option>
+                            <option value="5">5 - Tanggal 5</option>
+                            <option value="6">6 - Tanggal 6</option>
+                            <option value="7">7 - Tanggal 7</option>
+                            <option value="8">8 - Tanggal 8</option>
+                            <option value="9">9 - Tanggal 9</option>
+                            <option value="10">10 - Tanggal 10</option>
+                            <option value="11">11 - Tanggal 11</option>
+                            <option value="12">12 - Tanggal 12</option>
+                            <option value="13">13 - Tanggal 13</option>
+                            <option value="14">14 - Tanggal 14</option>
+                            <option value="15">15 - Tanggal 15</option>
+                            <option value="16">16 - Tanggal 16</option>
+                            <option value="17">17 - Tanggal 17</option>
+                            <option value="18">18 - Tanggal 18</option>
+                            <option value="19">19 - Tanggal 19</option>
+                            <option value="20">20 - Tanggal 20</option>
+                            <option value="21">21 - Tanggal 21</option>
+                            <option value="22">22 - Tanggal 22</option>
+                            <option value="23">23 - Tanggal 23</option>
+                            <option value="24">24 - Tanggal 24</option>
+                            <option value="25">25 - Tanggal 25</option>
+                            <option value="26">26 - Tanggal 26</option>
+                            <option value="27">27 - Tanggal 27</option>
+                            <option value="28">28 - Tanggal 28</option>
+                            <option value="29">29 - Tanggal 29</option>
+                            <option value="30">30 - Tanggal 30</option>
+                            <option value="31">31 - Tanggal 31</option>
+                        </select>
+                    </div>
+
+                    <div class="control-block" id="specialMonthBlock" style="display:none">
+                        <label class="field-label" for="specialMonthSelect">Pilih bulan</label>
+                        <select id="specialMonthSelect" aria-label="Pilih bulan">
+                            <option value="1">1 - Januari</option>
+                            <option value="2">2 - Februari</option>
+                            <option value="3">3 - Maret</option>
+                            <option value="4">4 - April</option>
+                            <option value="5">5 - Mei</option>
+                            <option value="6">6 - Juni</option>
+                            <option value="7">7 - Juli</option>
+                            <option value="8">8 - Agustus</option>
+                            <option value="9">9 - September</option>
+                            <option value="10">10 - Oktober</option>
+                            <option value="11">11 - November</option>
+                            <option value="12">12 - Desember</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="button" class="btn-batal" id="btnBatal">
+                    <i class="fa-solid fa-xmark"></i> Batal
+                </button>
+                <button type="button" class="btn-selesai" id="end">
+                    <i class="fa-solid fa-check"></i> Selesai
+                </button>
+            </div>
+        </section>
+    </div>
+
+    <script src="indexan.js"></script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+{
+  "name": "noted",
+  "version": "1.0.0",
+  "description": "",
+  "main": "indexan.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zeinboverride-del/noted.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/zeinboverride-del/noted/issues"
+  },
+  "homepage": "https://github.com/zeinboverride-del/noted#readme",
+  "dependencies": {
+    "@capacitor/android": "^8.5.0",
+    "@capacitor/cli": "^8.5.0",
+    "@capacitor/core": "^8.5.0",
+    "@capacitor/local-notifications": "^8.3.0"
+  }
+}
