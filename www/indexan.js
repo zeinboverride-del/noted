@@ -72,6 +72,121 @@ async function ensureNotificationPermissions() {
     }
 }
 
+function getRegularDayNames() {
+    return HARI_NAMES.slice();
+}
+
+function getNextLocalDateAtTime(referenceDate, hour, minute) {
+    const trigger = new Date(referenceDate);
+    trigger.setHours(hour, minute, 0, 0);
+
+    if (trigger.getTime() <= referenceDate.getTime()) {
+        trigger.setDate(trigger.getDate() + 1);
+    }
+
+    return trigger;
+}
+
+function buildTodayAndTomorrowTasks(referenceDate, notesByDay) {
+    const dayNames = getRegularDayNames();
+    const todayIndex = referenceDate.getDay();
+    const today = dayNames[todayIndex];
+    const tomorrow = dayNames[(todayIndex + 1) % 7];
+
+    const getTasks = function(dayName) {
+        const tasks = Array.isArray(notesByDay[dayName]) ? notesByDay[dayName] : [];
+        return tasks.filter(function(task) {
+            return task && !task.selesai && task.judul && task.judul.trim() && !task.specialMode;
+        });
+    };
+
+    return {
+        today,
+        tomorrow,
+        todayTasks: getTasks(today),
+        tomorrowTasks: getTasks(tomorrow)
+    };
+}
+
+function buildDailyReminderNotifications(referenceDate, notesByDay) {
+    const { today, tomorrow, todayTasks, tomorrowTasks } = buildTodayAndTomorrowTasks(referenceDate, notesByDay || {});
+    const createBody = function(taskList, fallbackText) {
+        const names = (taskList || []).map(function(task) {
+            return (task.judul || 'Tugas').trim() || 'Tugas';
+        });
+
+        if (!names.length) {
+            return fallbackText;
+        }
+
+        return names.join(', ');
+    };
+
+    return [
+        {
+            id: 6001,
+            title: 'Tugas Hari Ini',
+            body: createBody(todayTasks, 'Tugas sudah selesai semua.'),
+            schedule: { at: getNextLocalDateAtTime(referenceDate, 6, 0), every: 'day' }
+        },
+        {
+            id: 6002,
+            title: 'Tugas Hari Esok',
+            body: createBody(tomorrowTasks, 'Tugas sudah selesai semua.'),
+            schedule: { at: getNextLocalDateAtTime(referenceDate, 14, 0), every: 'day' }
+        },
+        {
+            id: 6003,
+            title: 'Ringkasan Hari Ini & Besok',
+            body: createBody(todayTasks.concat(tomorrowTasks), 'Tugas sudah selesai semua.') || 'Tugas sudah selesai semua.',
+            schedule: { at: getNextLocalDateAtTime(referenceDate, 18, 0), every: 'day' }
+        }
+    ].map(function(notification) {
+        if (notification.title === 'Ringkasan Hari Ini & Besok') {
+            const summary = [
+                today + ': ' + createBody(todayTasks, 'Tidak ada tugas.'),
+                tomorrow + ': ' + createBody(tomorrowTasks, 'Tidak ada tugas.')
+            ];
+            notification.body = summary.join(' | ');
+            if (!todayTasks.length && !tomorrowTasks.length) {
+                notification.body = 'Tugas sudah selesai semua.';
+            }
+        }
+        return notification;
+    });
+}
+
+async function scheduleDailyReminderNotifications() {
+    const plugin = getLocalNotificationsPlugin();
+    if (!plugin) {
+        return false;
+    }
+
+    try {
+        const granted = await ensureNotificationPermissions();
+        if (!granted) {
+            return false;
+        }
+
+        const notifications = buildDailyReminderNotifications(new Date(), normalizeNotes(loadNotes()));
+        const cancelOptions = {
+            notifications: notifications.map(function(notification) {
+                return { id: notification.id };
+            })
+        };
+
+        if (typeof plugin.cancel === 'function') {
+            await plugin.cancel(cancelOptions);
+        }
+
+        await plugin.schedule({ notifications });
+        return true;
+    } catch (error) {
+        console.error('Gagal menjadwalkan notifikasi harian:', error);
+        return false;
+    }
+}
+
 function getTargetDateTimeInput() {
     const elementIds = [
         'inputTargetDateTime',
@@ -129,7 +244,7 @@ function buildReminderBodyForTask(taskTitle, targetDate, type) {
 }
 
 async function scheduleTaskNotifications(task) {
-    if (!task || !task.id) {
+    if (!task || !task.id || task.specialMode) {
         return false;
     }
 
@@ -201,6 +316,7 @@ function loadNotes() {
 
 function saveNotes(data) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    scheduleDailyReminderNotifications();
     syncUI();
 }
 
@@ -841,7 +957,7 @@ async function checkAndSendNotifications() {
     const taskList = Object.values(allNotes).flat();
 
     for (const task of taskList) {
-        if (!task || task.selesai) {
+        if (!task || task.selesai || task.specialMode) {
             continue;
         }
 
@@ -849,18 +965,47 @@ async function checkAndSendNotifications() {
     }
 }
 
-window.addEventListener('load', function() {
-    ensureNotificationPermissions();
-});
-
-window.addEventListener('popstate', function(e) {
-    // Jika Form Quest sedang terbuka, tutup formnya dulu
+function handleHardwareBackButton() {
     if (noteForm.classList.contains('active')) {
         tutupForm();
         return;
     }
 
-    // Jika sedang berada di tampilan Hari/Quest, kembali ke Menu Utama
+    if (questInDay.classList.contains('active')) {
+        kembaliKeAwal();
+        return;
+    }
+
+    if (window.history && window.history.state && typeof window.history.back === 'function') {
+        window.history.back();
+    }
+}
+
+function bindHardwareBackButton() {
+    const appPlugin = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App;
+    if (appPlugin && typeof appPlugin.addListener === 'function') {
+        appPlugin.addListener('backButton', function() {
+            handleHardwareBackButton();
+        });
+    }
+
+    if (document && typeof document.addEventListener === 'function') {
+        document.addEventListener('backbutton', handleHardwareBackButton);
+    }
+}
+
+window.addEventListener('load', function() {
+    ensureNotificationPermissions();
+    scheduleDailyReminderNotifications();
+    bindHardwareBackButton();
+});
+
+window.addEventListener('popstate', function(e) {
+    if (noteForm.classList.contains('active')) {
+        tutupForm();
+        return;
+    }
+
     if (questInDay.classList.contains('active')) {
         kembaliKeAwal();
         return;

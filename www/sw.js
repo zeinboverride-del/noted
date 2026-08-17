@@ -6,7 +6,6 @@ const urlsToCache = [
   './indexan.js',
   './manifest.json',
   './icon-192.png',
-  './icon-512.png',
   './HASIL_HASIL/fontawesome/css/all.min.css' // Pastikan folder fontawesome ke-cache
 ];
 
