@@ -976,9 +976,11 @@ function handleHardwareBackButton() {
         return;
     }
 
-    if (window.history && window.history.state && typeof window.history.back === 'function') {
-        window.history.back();
-    }
+    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
+    window.Capacitor.Plugins.App.exitApp();
+  } else if (window.history && typeof window.history.back === 'function') {
+    window.history.back();
+  }
 }
 
 function bindHardwareBackButton() {
