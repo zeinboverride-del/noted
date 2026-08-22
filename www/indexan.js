@@ -966,25 +966,20 @@ async function checkAndSendNotifications() {
 }
 
 function handleHardwareBackButton() {
-    if (noteForm.classList.contains('active')) {
-        kembaliKeAwal();
-        return;
-    }
-
     if (questInDay.classList.contains('active')) {
         kembaliKeAwal();
         return;
     }
 
-        const appPlugin = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App;
-        if (appPlugin && typeof appPlugin.exitApp === 'function') {
-                appPlugin.exitApp();
-                return;
-        }
+    const appPlugin = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App;
+    if (appPlugin && typeof appPlugin.exitApp === 'function') {
+        appPlugin.exitApp();
+        return;
+    }
 
-        if (window.history && typeof window.history.back === 'function') {
-                window.history.back();
-        }
+    if (window.history && typeof window.history.back === 'function') {
+        window.history.back();
+    }
 }
 
 function bindHardwareBackButton() {
@@ -1007,13 +1002,7 @@ window.addEventListener('load', function() {
 });
 
 window.addEventListener('popstate', function(e) {
-    if (noteForm.classList.contains('active')) {
-        kembaliKeAwal();
-        return;
-    }
-
     if (questInDay.classList.contains('active')) {
         kembaliKeAwal();
-        return;
     }
 });
