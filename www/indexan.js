@@ -967,7 +967,7 @@ async function checkAndSendNotifications() {
 
 function handleHardwareBackButton() {
     if (noteForm.classList.contains('active')) {
-        tutupForm();
+        kembaliKeAwal();
         return;
     }
 
@@ -976,11 +976,15 @@ function handleHardwareBackButton() {
         return;
     }
 
-    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
-    window.Capacitor.Plugins.App.exitApp();
-  } else if (window.history && typeof window.history.back === 'function') {
-    window.history.back();
-  }
+        const appPlugin = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App;
+        if (appPlugin && typeof appPlugin.exitApp === 'function') {
+                appPlugin.exitApp();
+                return;
+        }
+
+        if (window.history && typeof window.history.back === 'function') {
+                window.history.back();
+        }
 }
 
 function bindHardwareBackButton() {
@@ -1004,7 +1008,7 @@ window.addEventListener('load', function() {
 
 window.addEventListener('popstate', function(e) {
     if (noteForm.classList.contains('active')) {
-        tutupForm();
+        kembaliKeAwal();
         return;
     }
 
